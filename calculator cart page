@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReCircuit — Waste Value Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#122420;
+    --forest:#163832;
+    --forest-light:#1F4B43;
+    --paper:#F6F4EE;
+    --paper-dim:#EBE8DE;
+    --copper:#B8672E;
+    --copper-light:#D98A4F;
+    --brass:#D4A03C;
+    --pcb-green:#4C9A6A;
+    --line:#D8D3C4;
+    --white:#FFFDF9;
+    --danger:#B84A3A;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:'Inter',sans-serif;
+    background:var(--paper);
+    color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  .display{font-family:'Space Grotesk',sans-serif;}
+  .mono{font-family:'JetBrains Mono',monospace;}
+  button{font-family:inherit;}
+
+  /* ---------- header ---------- */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:20px clamp(20px,5vw,56px);
+    border-bottom:1px solid var(--line);
+    background:var(--paper);
+    position:sticky; top:0; z-index:40;
+  }
+  .logo{display:flex; align-items:center; gap:10px;}
+  .logo-mark{
+    width:32px;height:32px;border-radius:8px;
+    background:var(--forest);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .logo-mark svg{width:19px;height:19px;}
+  .logo-text{font-size:18px;font-weight:700;letter-spacing:-0.02em;}
+  .logo-text span{color:var(--copper);}
+  .call-pill{
+    display:flex; align-items:center; gap:8px;
+    background:var(--forest); color:var(--white);
+    padding:9px 16px; border-radius:100px;
+    font-size:13px; font-weight:600; text-decoration:none;
+  }
+  /* ---------- hero ---------- */
+  .hero{ padding:clamp(28px,5vw,52px) clamp(20px,5vw,56px) 8px; max-width:720px; }
+  .eyebrow{
+    display:inline-flex; align-items:center; gap:8px;
+    font-family:'JetBrains Mono',monospace; font-size:11.5px; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--forest);
+    background:var(--paper-dim); border:1px solid var(--line);
+    padding:6px 12px; border-radius:100px; margin-bottom:18px;
+  }
+  .eyebrow::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--pcb-green);box-shadow:0 0 0 3px rgba(76,154,106,0.2);}
+  h1{
+    font-size:clamp(28px,4.2vw,40px);
+    line-height:1.08;
+    font-weight:700;
+    letter-spacing:-0.03em;
+    margin-bottom:14px;
+  }
+  h1 em{ font-style:normal; color:var(--copper); }
+  .hero p{ font-size:15.5px; line-height:1.6; color:#3E4D48; max-width:480px; }
+
+  /* ---------- layout ---------- */
+  .app-wrap{
+    max-width:1240px; margin:0 auto;
+    padding:20px clamp(20px,5vw,56px) 90px;
+    display:grid; grid-template-columns:1.5fr 1fr; gap:24px; align-items:start;
+  }
+  @media (max-width:960px){ .app-wrap{ grid-template-columns:1fr; } }
+
+  /* ---------- picker card ---------- */
+  .picker-card{
+    background:var(--white); border:1px solid var(--line); border-radius:20px;
+    padding:clamp(20px,3vw,30px);
+  }
+  .group-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:22px; }
+  .group-chip{
+    display:flex; align-items:center; gap:7px;
+    padding:9px 14px; border-radius:100px;
+    border:1.5px solid var(--line); background:var(--paper);
+    cursor:pointer; font-size:13px; font-weight:600; color:var(--ink);
+    transition:all .16s ease;
+  }
+  .group-chip svg{width:15px;height:15px;color:var(--forest);}
+  .group-chip:hover{ border-color:var(--copper-light); }
+  .group-chip.active{ background:var(--forest); border-color:var(--forest); color:var(--white); }
+  .group-chip.active svg{ color:var(--white); }
+
+  .group-hint{
+    font-size:12.5px; color:#7C8983; margin-bottom:14px;
+  }
+
+  .item-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  @media (max-width:560px){ .item-grid{ grid-template-columns:repeat(2,1fr); } }
+  .item-card{
+    text-align:left;
+    padding:13px 14px; border-radius:12px;
+    border:1.5px solid var(--line); background:var(--paper);
+    cursor:pointer; transition:all .16s ease;
+  }
+  .item-card:hover{ border-color:var(--copper-light); transform:translateY(-1px); }
+  .item-card.active{ background:var(--forest); border-color:var(--forest); }
+  .item-card .name{ font-size:13.5px; font-weight:600; color:var(--ink); display:block; margin-bottom:2px; }
+  .item-card.active .name{ color:var(--white); }
+  .item-card .unit{ font-size:11.5px; color:#8A9490; }
+  .item-card.active .unit{ color:rgba(255,255,255,0.6); }
+
+  /* ---------- config panel (appears under item grid) ---------- */
+  .config-panel{
+    margin-top:20px; padding-top:20px; border-top:1px dashed var(--line);
+  }
+  .config-title{ font-size:14.5px; font-weight:700; margin-bottom:14px; }
+  .config-title .sel-group{ color:var(--copper); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.05em; display:block; margin-bottom:3px; font-family:'JetBrains Mono',monospace; }
+
+  .cond-row{ display:flex; gap:10px; margin-bottom:16px; }
+  .cond-btn{
+    flex:1; padding:12px; border-radius:12px; text-align:center;
+    border:1.5px solid var(--line); background:var(--white); cursor:pointer;
+    font-size:13.5px; font-weight:600; transition:all .16s ease;
+  }
+  .cond-btn .price{ display:block; font-size:16px; font-weight:700; margin-top:3px; font-family:'Space Grotesk',sans-serif; }
+  .cond-btn.working{ }
+  .cond-btn.working.active{ background:var(--pcb-green); border-color:var(--pcb-green); color:white; }
+  .cond-btn.nonworking.active{ background:var(--danger); border-color:var(--danger); color:white; }
+  .cond-btn:hover{ border-color:var(--copper-light); }
+
+  .qty-row{ display:flex; align-items:center; justify-content:space-between; margin-bottom:18px; }
+  .qty-label{ font-size:13px; font-weight:600; color:#3E4D48; }
+  .qty-stepper{ display:flex; align-items:center; gap:0; border:1.5px solid var(--line); border-radius:10px; overflow:hidden; }
+  .qty-stepper button{
+    width:36px; height:36px; border:none; background:var(--paper); cursor:pointer;
+    font-size:17px; color:var(--forest); font-weight:600;
+  }
+  .qty-stepper button:hover{ background:var(--paper-dim); }
+  .qty-stepper input{
+    width:56px; text-align:center; border:none; border-left:1.5px solid var(--line); border-right:1.5px solid var(--line);
+    height:36px; font-size:14px; font-weight:600; font-family:'JetBrains Mono',monospace; background:var(--white);
+  }
+  .qty-stepper input:focus{ outline:none; }
+
+  .weight-row{ margin-bottom:18px; }
+  .weight-quick{ display:flex; gap:8px; margin-top:10px; }
+  .weight-quick button{
+    padding:7px 13px; border-radius:100px; border:1.5px solid var(--line); background:var(--paper);
+    font-size:12.5px; font-weight:600; cursor:pointer; color:var(--ink);
+  }
+  .weight-quick button:hover{ border-color:var(--copper-light); }
+  .weight-input-wrap{ display:flex; align-items:center; gap:8px; }
+  .weight-input-wrap input{
+    width:110px; padding:10px 12px; border-radius:10px; border:1.5px solid var(--line);
+    font-size:15px; font-weight:600; font-family:'JetBrains Mono',monospace; background:var(--white);
+  }
+  .weight-input-wrap input:focus{ outline:none; border-color:var(--copper); }
+  .weight-input-wrap span{ font-size:13px; color:#5A6863; font-weight:600; }
+
+  .add-btn{
+    width:100%; background:var(--copper); color:var(--white); border:none; border-radius:12px;
+    padding:14px; font-size:14.5px; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:background .18s;
+  }
+  .add-btn:hover:not(:disabled){ background:var(--copper-light); }
+  .add-btn:disabled{ background:var(--line); color:#9AA39E; cursor:not-allowed; }
+
+  .empty-config{ text-align:center; padding:24px 10px; color:#8A9490; font-size:13.5px; }
+
+  /* ---------- cart panel ---------- */
+  .cart-card{
+    background:linear-gradient(165deg, var(--forest) 0%, #0F2C27 100%);
+    border-radius:20px; color:var(--white);
+    padding:clamp(20px,3vw,28px);
+    position:sticky; top:88px;
+    display:flex; flex-direction:column;
+  }
+  .cart-title{ font-size:16px; font-weight:700; margin-bottom:4px; display:flex; align-items:center; justify-content:space-between; }
+  .cart-count{ font-family:'JetBrains Mono',monospace; font-size:12px; color:rgba(255,255,255,0.55); }
+  .cart-sub{ font-size:12.5px; color:rgba(255,255,255,0.5); margin-bottom:18px; }
+
+  .cart-empty{
+    padding:34px 10px; text-align:center; color:rgba(255,255,255,0.45); font-size:13.5px;
+    border:1px dashed rgba(255,255,255,0.15); border-radius:14px;
+  }
+
+  .cart-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:16px; max-height:360px; overflow-y:auto; }
+  .cart-item{
+    background:rgba(255,255,255,0.06); border-radius:12px; padding:12px 13px;
+    display:flex; justify-content:space-between; align-items:center; gap:10px;
+  }
+  .cart-item-main{ min-width:0; }
+  .cart-item-name{ font-size:13.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cart-item-meta{ font-size:11.5px; color:rgba(255,255,255,0.5); margin-top:2px; }
+  .cart-item-right{ display:flex; align-items:center; gap:10px; flex-shrink:0; }
+  .cart-item-price{ font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:14px; }
+  .cart-item-remove{
+    width:24px; height:24px; border-radius:50%; border:none; background:rgba(255,255,255,0.1);
+    color:rgba(255,255,255,0.7); cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center;
+  }
+  .cart-item-remove:hover{ background:rgba(184,74,58,0.7); color:white; }
+
+  .cart-total-row{
+    display:flex; justify-content:space-between; align-items:baseline;
+    padding-top:16px; border-top:1px solid rgba(255,255,255,0.15); margin-top:auto;
+  }
+  .cart-total-label{ font-size:13px; color:rgba(255,255,255,0.65); font-weight:600; }
+  .cart-total-value{ font-family:'Space Grotesk',sans-serif; font-size:28px; font-weight:700; }
+  .cart-total-value .curr{ font-size:0.55em; opacity:0.7; }
+
+  .inspection-note{
+    display:flex; gap:8px; align-items:flex-start; margin-top:14px;
+    background:rgba(255,255,255,0.06); border-radius:10px; padding:11px 12px;
+    font-size:12px; line-height:1.5; color:rgba(255,255,255,0.75);
+  }
+  .inspection-note svg{ width:15px; height:15px; flex-shrink:0; margin-top:1px; color:var(--brass); }
+  .inspection-note a{ color:var(--brass); font-weight:600; text-decoration:underline; cursor:pointer; }
+
+  .cta-btn{
+    margin-top:16px; width:100%; background:var(--copper); color:var(--white); border:none; border-radius:12px;
+    padding:15px 20px; font-size:15px; font-weight:700; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    transition:background .2s, transform .1s;
+  }
+  .cta-btn:hover:not(:disabled){ background:var(--copper-light); }
+  .cta-btn:disabled{ background:rgba(255,255,255,0.12); color:rgba(255,255,255,0.35); cursor:not-allowed; }
+
+  /* ---------- modal (lead form) ---------- */
+  .modal-overlay{
+    position:fixed; inset:0; background:rgba(15,30,27,0.55);
+    display:flex; align-items:center; justify-content:center;
+    z-index:100; padding:20px;
+    opacity:0; pointer-events:none; transition:opacity .25s;
+  }
+  .modal-overlay.open{ opacity:1; pointer-events:all; }
+  .modal{
+    background:var(--white); border-radius:18px; width:100%; max-width:440px;
+    padding:30px; position:relative;
+    transform:translateY(12px) scale(0.98); transition:transform .25s;
+    max-height:88vh; overflow-y:auto;
+  }
+  .modal-overlay.open .modal{ transform:translateY(0) scale(1); }
+  .modal-close{
+    position:absolute; top:16px; right:16px; width:30px;height:30px;
+    border-radius:50%; border:none; background:var(--paper-dim);
+    cursor:pointer; display:flex; align-items:center; justify-content:center;
+    color:var(--ink); font-size:16px;
+  }
+  .modal h3{ font-size:21px; margin-bottom:6px; font-weight:700; letter-spacing:-0.01em; }
+  .modal .modal-price{ color:var(--copper); font-weight:700; }
+  .modal p.sub{ color:#5A6863; font-size:13.5px; margin-bottom:18px; }
+  .modal-cart-recap{ background:var(--paper); border-radius:12px; padding:12px 14px; margin-bottom:20px; }
+  .modal-cart-recap-row{ display:flex; justify-content:space-between; font-size:12.5px; padding:3px 0; color:#3E4D48; }
+  .modal-cart-recap-row.total{ font-weight:700; color:var(--ink); border-top:1px solid var(--line); margin-top:6px; padding-top:8px; }
+  .field{ margin-bottom:15px; }
+  .field label{ display:block; font-size:12.5px; font-weight:600; margin-bottom:6px; color:var(--ink); }
+  .field input{
+    width:100%; padding:12px 14px; border-radius:10px;
+    border:1.5px solid var(--line); font-size:14.5px; font-family:'Inter',sans-serif;
+    background:var(--paper);
+  }
+  .field input:focus{ outline:none; border-color:var(--copper); background:var(--white); }
+  .submit-btn{
+    width:100%; background:var(--forest); color:var(--white); border:none;
+    border-radius:10px; padding:14px; font-size:15px; font-weight:700;
+    cursor:pointer; margin-top:4px;
+  }
+  .submit-btn:hover{ background:var(--forest-light); }
+  .success{ text-align:center; padding:8px 0; }
+  .success .check{
+    width:54px;height:54px;border-radius:50%;background:var(--pcb-green);
+    display:flex;align-items:center;justify-content:center;margin:0 auto 16px;
+  }
+  .success .check svg{width:26px;height:26px;color:white;}
+  .success p{color:#5A6863; font-size:14px; line-height:1.5;}
+
+  /* ---------- inspection modal ---------- */
+  .insp-modal .modal{ max-width:480px; }
+  .insp-list{ list-style:none; display:flex; flex-direction:column; gap:10px; margin-top:6px; }
+  .insp-list li{ display:flex; gap:12px; align-items:flex-start; font-size:13.5px; line-height:1.5; color:#3E4D48; }
+  .insp-num{
+    flex-shrink:0; width:22px; height:22px; border-radius:6px; background:var(--paper-dim);
+    display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700;
+    color:var(--forest); font-family:'JetBrains Mono',monospace;
+  }
+  .insp-footer-note{ font-size:12px; color:#8A9490; margin-top:16px; font-style:italic; }
+
+  .shake{ animation:shake .35s; }
+  @keyframes shake{ 0%,100%{transform:translateX(0);} 25%{transform:translateX(-4px);} 75%{transform:translateX(4px);} }
+  @media (prefers-reduced-motion: reduce){ *{transition:none !important; animation:none !important;} }
+
+  footer{ text-align:center; padding:22px; font-size:12px; color:#8A9490; border-top:1px solid var(--line); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="6" cy="6" r="2" stroke="#F6F4EE" stroke-width="1.6"/>
+        <circle cx="18" cy="18" r="2" stroke="#F6F4EE" stroke-width="1.6"/>
+        <path d="M6 8v3a2 2 0 0 0 2 2h3M18 16v-3a2 2 0 0 0-2-2h-3" stroke="#D98A4F" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="1.6" fill="#D98A4F"/>
+      </svg>
+    </div>
+    <div class="logo-text">Re<span>Circuit</span></div>
+  </div>
+  <div style="display:flex; align-items:center; gap:10px;">
+    <a href="tel:18001234567" class="call-pill">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.4 21 3 13.6 3 4.6c0-.6.4-1 1-1h3.4c.6 0 1 .4 1 1 0 1.3.2 2.5.6 3.6.1.4 0 .8-.2 1L6.6 10.8z" stroke="white" stroke-width="1.6" stroke-linejoin="round"/></svg>
+      1800-123-4567
+    </a>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="eyebrow">Add multiple items · one pickup</div>
+  <h1>Build your scrap &amp; e-waste <em>cart.</em></h1>
+  <p>Pick everything you're clearing out — appliances, electronics, metals, paper, plastic — and see one running total. Final payout is confirmed after a quick 10-point on-site check.</p>
+</section>
+
+<div class="app-wrap">
+
+  <!-- ============ PICKER ============ -->
+  <div class="picker-card">
+    <div class="group-row" id="groupRow"></div>
+    <div class="group-hint" id="groupHint"></div>
+    <div class="item-grid" id="itemGrid"></div>
+
+    <div class="config-panel" id="configPanel">
+      <div class="empty-config">Select an item above to add it to your cart.</div>
+    </div>
+  </div>
+
+  <!-- ============ CART ============ -->
+  <div class="cart-card">
+    <div class="cart-title">Your cart <span class="cart-count" id="cartCount">0 items</span></div>
+    <div class="cart-sub">Estimated value — confirmed after inspection</div>
+
+    <div id="cartBody">
+      <div class="cart-empty">Nothing added yet. Pick an item on the left to get started.</div>
+    </div>
+
+    <div class="cart-total-row">
+      <div class="cart-total-label">Total estimate</div>
+      <div class="cart-total-value"><span class="curr">₹</span><span id="cartTotal">0</span></div>
+    </div>
+
+    <div class="inspection-note">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4.5 8-11V5l-8-3-8 3v6c0 6.5 8 11 8 11z" stroke="currentColor" stroke-width="1.6"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Exact payout is confirmed after our <a id="openInspection">10-point on-site inspection</a> — this total is an estimate.</span>
+    </div>
+
+    <button class="cta-btn" id="ctaBtn" disabled>
+      Book pickup for cart
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 6l6 6-6 6" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+  </div>
+
+</div>
+
+<footer>© 2026 ReCircuit — a responsible e-waste &amp; scrap recycling platform. Prices shown are indicative estimates; final price confirmed after a 10-point on-site inspection.</footer>
+
+<!-- ============ LEAD FORM MODAL ============ -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <button class="modal-close" id="modalClose">✕</button>
+    <div id="modalFormState">
+      <h3>Almost there.</h3>
+      <p class="sub">Enter your details and we'll confirm a pickup slot for your cart.</p>
+      <div class="modal-cart-recap" id="modalCartRecap"></div>
+      <form id="leadForm">
+        <div class="field">
+          <label for="fName">Full name</label>
+          <input id="fName" type="text" placeholder="e.g. Anjali Rao" required>
+        </div>
+        <div class="field">
+          <label for="fPhone">Phone number</label>
+          <input id="fPhone" type="tel" placeholder="10-digit mobile number" required pattern="[0-9]{10}" maxlength="10">
+        </div>
+        <div class="field">
+          <label for="fPin">Pincode</label>
+          <input id="fPin" type="text" placeholder="e.g. 411001" required pattern="[0-9]{6}" maxlength="6">
+        </div>
+        <button type="submit" class="submit-btn">Confirm &amp; request pickup</button>
+      </form>
+    </div>
+    <div id="modalSuccessState" style="display:none;">
+      <div class="success">
+        <div class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h3>Request received!</h3>
+        <p>A ReCircuit agent will call you within 2 hours to confirm your pickup slot for your estimated <b id="successPrice">₹0</b> cart.</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ INSPECTION MODAL ============ -->
+<div class="modal-overlay insp-modal" id="inspOverlay">
+  <div class="modal">
+    <button class="modal-close" id="inspClose">✕</button>
+    <h3>The 10-point inspection</h3>
+    <p class="sub">Placeholder checklist — final content to be confirmed. This is what our agent checks on-site before locking your payout.</p>
+    <ol class="insp-list" id="inspList"></ol>
+    <div class="insp-footer-note">Draft checklist for structure only — replace with your final 10 points.</div>
+  </div>
+</div>
+
+<script>
+  // ================= DATA =================
+  // Group-level pricingType is the DEFAULT for items in that group.
+  // Individual items can override with their own pricingMode:
+  //   'variantCondition' -> pick variant(s) then Working/Non-Working (AC, Fridge, Washing Machine)
+  //   'condition'         -> just Working/Non-Working (Microwave, Fan)
+  //   'flat'              -> single price per unit, no condition (Dishwasher, Geyser, Motor, Cooler, IT, Mobile)
+  //   'perKg'             -> priced per kg (Mixed E-Waste, Batteries, Paper, Plastic, Metals)
+  // All prices below are PLACEHOLDERS for structure only.
+  const GROUPS = [
+    {
+      id:'appliances', label:'Appliances', pricingType:'condition',
+      hint:'Some items need type/capacity first, then Working or Non-Working.',
+      icon:'<path d="M6 3h12v18H6V3z" stroke="currentColor" stroke-width="1.6"/><path d="M6 9h12M9 5.5v2M9 12v3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+      items:[
+        {
+          id:'ac', name:'AC (Window / Split)', pricingMode:'variantCondition',
+          variantLevels:[
+            { key:'type', label:'Type', options:['Window','Split'] },
+            { key:'tonnage', label:'Tonnage', options:['1 TR','1.5 TR','2 TR','2.5 TR'] },
+          ],
+          prices:{
+            'Window|1 TR':{working:3200,nonWorking:1400}, 'Window|1.5 TR':{working:3800,nonWorking:1700},
+            'Window|2 TR':{working:4500,nonWorking:2000}, 'Window|2.5 TR':{working:5200,nonWorking:2400},
+            'Split|1 TR':{working:4200,nonWorking:1800}, 'Split|1.5 TR':{working:5000,nonWorking:2200},
+            'Split|2 TR':{working:5800,nonWorking:2600}, 'Split|2.5 TR':{working:6600,nonWorking:3000},
+          }
+        },
+        {
+          id:'ref', name:'Refrigerator', pricingMode:'variantCondition',
+          variantLevels:[ { key:'variant', label:'Type', options:['Single Door','Double Door','Side-by-Side'] } ],
+          prices:{
+            'Single Door':{working:1800,nonWorking:600},
+            'Double Door':{working:2800,nonWorking:900},
+            'Side-by-Side':{working:4500,nonWorking:1500},
+          }
+        },
+        {
+          id:'wm', name:'Washing Machine', pricingMode:'variantCondition',
+          variantLevels:[ { key:'variant', label:'Type', options:['Automatic Front','Automatic Top','Semi-Automatic'] } ],
+          prices:{
+            'Automatic Front':{working:2800,nonWorking:700},
+            'Automatic Top':{working:2200,nonWorking:500},
+            'Semi-Automatic':{working:1400,nonWorking:350},
+          }
+        },
+        { id:'dw', name:'Dishwasher', pricingMode:'flat', price:900 },
+        { id:'mw', name:'Microwave', pricingMode:'condition', working:700, nonWorking:150 },
+        { id:'geyser', name:'Geyser', pricingMode:'flat', price:400 },
+        { id:'motor', name:'Electric Motor', pricingMode:'flat', price:350 },
+        { id:'fan', name:'Fan', pricingMode:'condition', working:350, nonWorking:100 },
+        { id:'cooler', name:'Cooler', pricingMode:'flat', price:250 },
+      ]
+    },
+    {
+      id:'it', label:'IT Waste', pricingType:'flat',
+      hint:'One price per unit — add how many you have.',
+      icon:'<rect x="3" y="4" width="18" height="12" rx="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M8 20h8M12 16v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+      items:[
+        { id:'laptop', name:'Laptop Scrap', price:800 },
+        { id:'cpu', name:'Desktop CPU', price:500 },
+        { id:'crt', name:'CRT Monitor', price:150 },
+        { id:'lcd', name:'LCD / LED Monitor', price:400 },
+        { id:'printer', name:'Printer', price:300 },
+        { id:'laserprinter', name:'Laser Printer', price:500 },
+        { id:'ups', name:'UPS', price:350 },
+        { id:'hdd', name:'Hard Drive', price:200 },
+        { id:'mixedew', name:'Mixed E-Waste', pricingMode:'perKg', pricePerKg:35 },
+      ]
+    },
+    {
+      id:'mobile', label:'Mobile', pricingType:'flat',
+      hint:'One price per unit — add how many you have.',
+      icon:'<rect x="7" y="2" width="10" height="20" rx="2" stroke="currentColor" stroke-width="1.6"/><path d="M11 18h2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+      items:[
+        { id:'basicphone', name:'Basic Mobile Phone', price:50 },
+        { id:'smartphone', name:'Smartphone', price:300 },
+        { id:'tablet', name:'Tablet', price:450 },
+      ]
+    },
+    {
+      id:'battery', label:'Batteries', pricingType:'perKg',
+      hint:'Priced per kg — enter the approximate weight.',
+      icon:'<rect x="3" y="7" width="16" height="10" rx="1.5" stroke="currentColor" stroke-width="1.6"/><path d="M19 10v4M21 10v4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+      items:[
+        { id:'leadbattery', name:'Lead-Acid Battery', pricePerKg:90 },
+        { id:'lithiumbattery', name:'Lithium Battery', pricePerKg:180 },
+      ]
+    },
+    {
+      id:'paper', label:'Paper', pricingType:'perKg',
+      hint:'Priced per kg — enter the approximate weight.',
+      icon:'<path d="M6 3h9l4 4v14H6V3z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M9 12h6M9 15h6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+      items:[
+        { id:'newspaper', name:'Newspaper', pricePerKg:14 },
+        { id:'books', name:'Books', pricePerKg:10 },
+        { id:'cardboard', name:'Cardboard / Gutta', pricePerKg:9 },
+        { id:'magazines', name:'Magazines', pricePerKg:8 },
+      ]
+    },
+    {
+      id:'plastic', label:'Plastic', pricingType:'perKg',
+      hint:'Priced per kg — enter the approximate weight.',
+      icon:'<path d="M12 2v20M4 7l8-5 8 5M4 17l8 5 8-5" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>',
+      items:[
+        { id:'hardplastic', name:'Hard Plastic (Crates/Buckets)', pricePerKg:18 },
+        { id:'softplastic', name:'Soft Plastic Film', pricePerKg:8 },
+      ]
+    },
+    {
+      id:'metals', label:'Metals', pricingType:'perKg',
+      hint:'Priced per kg — enter the approximate weight.',
+      icon:'<circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.6"/><path d="M8 12h8M12 8v8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>',
+      items:[
+        { id:'iron', name:'Iron Scrap', pricePerKg:28 },
+        { id:'ssteel', name:'SS Steel', pricePerKg:55 },
+        { id:'copperscrap', name:'Copper Scrap', pricePerKg:620 },
+        { id:'copperwire', name:'Copper Wire', pricePerKg:480 },
+        { id:'aluminium', name:'Aluminium Scrap', pricePerKg:165 },
+        { id:'brass', name:'Brass Scrap', pricePerKg:380 },
+        { id:'nickel', name:'Nickel Scrap', pricePerKg:700 },
+        { id:'panels', name:'Electrical Panels', pricePerKg:40 },
+        { id:'oiltins', name:'Oil Tins', pricePerKg:12 },
+        { id:'mixedmetals', name:'Mixed Metals', pricePerKg:30 },
+      ]
+    },
+  ];
+
+  // ================= LIVE PRICE SHEET (backend, not visible to site visitors) =================
+  // How this works:
+  // 1. You keep a Google Sheet with one row per price point (template: recircuit-price-sheet-template.csv).
+  // 2. File > Share > Publish to web > select the sheet > CSV > Publish. Copy that URL below.
+  // 3. Every time someone loads the calculator, it fetches that published CSV and overwrites the
+  //    placeholder prices in GROUPS above. Editing the sheet is the ONLY step you need — no re-upload,
+  //    no code changes. Visitors only ever see the calculator UI, never the sheet or this fetch.
+  // 4. If the fetch fails (URL not set yet, sheet unpublished, offline), the calculator silently falls
+  //    back to the placeholder prices already hard-coded in GROUPS above, so it never breaks for visitors.
+  const PRICE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRSeYHLzie8T_c3C7jJ_-qA_3jyIIKTxKefdnDmHNI0aoEmKljBuCg7H0htRQG0CCodtyNIJcZWQN8F/pub?gid=421974406&single=true&output=csv";
+
+  function parseCSV(text){
+    const rows = [];
+    const lines = text.replace(/\r/g,'').split('\n').filter(l => l.trim().length);
+    if(!lines.length) return rows;
+    const headers = splitCSVLine(lines[0]);
+    for(let i=1;i<lines.length;i++){
+      const cells = splitCSVLine(lines[i]);
+      const row = {};
+      headers.forEach((h,idx)=> row[h.trim()] = (cells[idx] !== undefined ? cells[idx].trim() : ''));
+      rows.push(row);
+    }
+    return rows;
+  }
+  // handles quoted fields with commas inside, e.g. "Item, With Comma"
+  function splitCSVLine(line){
+    const out = []; let cur = ''; let inQuotes = false;
+    for(let i=0;i<line.length;i++){
+      const ch = line[i];
+      if(ch === '"'){ inQuotes = !inQuotes; }
+      else if(ch === ',' && !inQuotes){ out.push(cur); cur=''; }
+      else{ cur += ch; }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  function num(v){ const n = parseFloat(v); return isNaN(n) ? null : n; }
+
+  function applyPriceSheetRows(rows){
+    // index rows by group_id::item_id::variant_label (variant_label blank for non-variant items)
+    const priceMap = {};
+    rows.forEach(r=>{
+      const key = `${r.group_id}::${r.item_id}::${r.variant_label || ''}`;
+      priceMap[key] = r;
+    });
+
+    GROUPS.forEach(group=>{
+      group.items.forEach(item=>{
+        const mode = pricingModeOf(group, item);
+        if(mode === 'variantCondition'){
+          Object.keys(item.prices).forEach(variantKey=>{
+            const row = priceMap[`${group.id}::${item.id}::${variantKey}`];
+            if(row){
+              const w = num(row.price_working), nw = num(row.price_nonworking);
+              if(w !== null) item.prices[variantKey].working = w;
+              if(nw !== null) item.prices[variantKey].nonWorking = nw;
+            }
+          });
+        } else if(mode === 'condition'){
+          const row = priceMap[`${group.id}::${item.id}::`];
+          if(row){
+            const w = num(row.price_working), nw = num(row.price_nonworking);
+            if(w !== null) item.working = w;
+            if(nw !== null) item.nonWorking = nw;
+          }
+        } else if(mode === 'flat'){
+          const row = priceMap[`${group.id}::${item.id}::`];
+          if(row){ const p = num(row.price_flat); if(p !== null) item.price = p; }
+        } else { // perKg
+          const row = priceMap[`${group.id}::${item.id}::`];
+          if(row){ const p = num(row.price_per_kg); if(p !== null) item.pricePerKg = p; }
+        }
+      });
+    });
+  }
+
+  async function loadPricesFromSheet(){
+    if(!PRICE_SHEET_CSV_URL || PRICE_SHEET_CSV_URL.indexOf('PASTE_YOUR') === 0){
+      console.warn('[ReCircuit] Price sheet URL not configured yet — using built-in placeholder prices.');
+      return;
+    }
+    try{
+      const res = await fetch(PRICE_SHEET_CSV_URL, { cache:'no-store' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      const rows = parseCSV(text);
+      applyPriceSheetRows(rows);
+    }catch(err){
+      // Fails silently for visitors — they still see a working calculator with fallback prices.
+      console.warn('[ReCircuit] Could not load live price sheet, using built-in placeholder prices.', err);
+    }
+  }
+
+  const INSPECTION_POINTS = [
+    'Overall physical condition and visible damage',
+    'Power-on / functional test where applicable',
+    'Confirm brand, model and approximate age',
+    'Check for missing parts or accessories',
+    'Data-wipe verification (IT / mobile devices)',
+    'Corrosion, rust or leakage check',
+    'Weight verification for scrap / metal items',
+    'Confirm material type (e.g. copper vs mixed alloy)',
+    'Safety check for batteries and refrigerant units',
+    'Final grading and payout confirmation',
+  ];
+
+  // resolve the effective pricing mode for an item, falling back to its group's default
+  function pricingModeOf(group, item){ return item.pricingMode || group.pricingType; }
+
+  // ================= STATE =================
+  let activeGroupId = GROUPS[0].id;
+  let selectedItem = null;
+  let selectedVariants = {};    // { levelKey: chosenOption }
+  let selectedCondition = null; // 'working' | 'nonWorking'
+  let qty = 1;
+  let weight = 1;
+
+  let cart = [];
+
+  // ================= RENDER: GROUPS =================
+  const groupRow = document.getElementById('groupRow');
+  const groupHint = document.getElementById('groupHint');
+  function renderGroups(){
+    groupRow.innerHTML = '';
+    GROUPS.forEach(g=>{
+      const chip = document.createElement('div');
+      chip.className = 'group-chip' + (g.id === activeGroupId ? ' active' : '');
+      chip.innerHTML = `<svg viewBox="0 0 24 24" fill="none">${g.icon}</svg><span>${g.label}</span>`;
+      chip.addEventListener('click', ()=>{
+        activeGroupId = g.id;
+        selectedItem = null;
+        renderGroups();
+        renderItems();
+        renderConfig();
+      });
+      groupRow.appendChild(chip);
+    });
+    const activeGroup = GROUPS.find(g=>g.id===activeGroupId);
+    groupHint.textContent = activeGroup.hint;
+  }
+
+  // ================= RENDER: ITEMS =================
+  const itemGrid = document.getElementById('itemGrid');
+  function unitTextFor(group, it){
+    const mode = pricingModeOf(group, it);
+    if(mode === 'variantCondition'){
+      const allPrices = Object.values(it.prices);
+      const lo = Math.min(...allPrices.map(p=>p.nonWorking));
+      const hi = Math.max(...allPrices.map(p=>p.working));
+      return `₹${lo}–₹${hi}`;
+    }
+    if(mode === 'condition') return `₹${it.nonWorking}–₹${it.working}`;
+    if(mode === 'flat') return `₹${it.price} / unit`;
+    return `₹${it.pricePerKg} / kg`;
+  }
+  function renderItems(){
+    const group = GROUPS.find(g=>g.id===activeGroupId);
+    itemGrid.innerHTML = '';
+    group.items.forEach(it=>{
+      const card = document.createElement('div');
+      card.className = 'item-card' + (selectedItem && selectedItem.id===it.id ? ' active' : '');
+      card.innerHTML = `<span class="name">${it.name}</span><span class="unit">${unitTextFor(group, it)}</span>`;
+      card.addEventListener('click', ()=>{
+        selectedItem = it;
+        selectedVariants = {};
+        selectedCondition = null;
+        qty = 1;
+        weight = 1;
+        renderItems();
+        renderConfig();
+      });
+      itemGrid.appendChild(card);
+    });
+  }
+
+  // ================= RENDER: CONFIG PANEL =================
+  const configPanel = document.getElementById('configPanel');
+
+  function variantKeyFor(item){
+    return item.variantLevels.map(l => selectedVariants[l.key]).join('|');
+  }
+  function variantsComplete(item){
+    return item.variantLevels.every(l => selectedVariants[l.key]);
+  }
+
+  function renderConfig(){
+    if(!selectedItem){
+      configPanel.innerHTML = '<div class="empty-config">Select an item above to add it to your cart.</div>';
+      return;
+    }
+    const group = GROUPS.find(g=>g.id===activeGroupId);
+    const mode = pricingModeOf(group, selectedItem);
+    let html = `<div class="config-title"><span class="sel-group">${group.label}</span>${selectedItem.name}</div>`;
+    let canAdd = false;
+
+    if(mode === 'variantCondition'){
+      selectedItem.variantLevels.forEach(level=>{
+        html += `<div class="qty-row" style="align-items:flex-start; flex-direction:column; gap:8px;">
+          <span class="qty-label">${level.label}</span>
+          <div class="cond-row" style="flex-wrap:wrap;">
+            ${level.options.map(opt => `
+              <div class="cond-btn variant-opt ${selectedVariants[level.key]===opt ? 'active-variant':''}" data-level="${level.key}" data-opt="${opt}" style="flex:none; padding:9px 14px; ${selectedVariants[level.key]===opt ? 'background:var(--forest);border-color:var(--forest);color:#fff;' : ''}">${opt}</div>
+            `).join('')}
+          </div>
+        </div>`;
+      });
+
+      if(variantsComplete(selectedItem)){
+        const key = variantKeyFor(selectedItem);
+        const p = selectedItem.prices[key];
+        html += `
+          <div class="cond-row">
+            <div class="cond-btn working ${selectedCondition==='working'?'active':''}" data-cond="working">
+              Working <span class="price">₹${p.working.toLocaleString('en-IN')}</span>
+            </div>
+            <div class="cond-btn nonworking ${selectedCondition==='nonWorking'?'active':''}" data-cond="nonWorking">
+              Non-Working <span class="price">₹${p.nonWorking.toLocaleString('en-IN')}</span>
+            </div>
+          </div>
+        `;
+        if(selectedCondition){
+          html += qtyRowHtml();
+          canAdd = true;
+        }
+      }
+    } else if(mode === 'condition'){
+      html += `
+        <div class="cond-row">
+          <div class="cond-btn working ${selectedCondition==='working'?'active':''}" data-cond="working">
+            Working <span class="price">₹${selectedItem.working.toLocaleString('en-IN')}</span>
+          </div>
+          <div class="cond-btn nonworking ${selectedCondition==='nonWorking'?'active':''}" data-cond="nonWorking">
+            Non-Working <span class="price">₹${selectedItem.nonWorking.toLocaleString('en-IN')}</span>
+          </div>
+        </div>
+      `;
+      html += qtyRowHtml();
+      canAdd = !!selectedCondition;
+    } else if(mode === 'flat'){
+      html += `<div class="qty-row"><span class="qty-label">Quantity (₹${selectedItem.price.toLocaleString('en-IN')} / unit)</span>
+        <div class="qty-stepper">
+          <button type="button" data-step="-1">−</button>
+          <input type="text" id="qtyInput" value="${qty}" readonly>
+          <button type="button" data-step="1">+</button>
+        </div>
+      </div>`;
+      canAdd = true;
+    } else { // perKg
+      const rate = selectedItem.pricePerKg;
+      html += `
+        <div class="weight-row">
+          <span class="qty-label">Weight (₹${rate.toLocaleString('en-IN')} / kg)</span>
+          <div class="weight-input-wrap" style="margin-top:10px;">
+            <input type="number" id="weightInput" min="0.5" step="0.5" value="${weight}">
+            <span>kg</span>
+          </div>
+          <div class="weight-quick">
+            <button type="button" data-wq="1">1 kg</button>
+            <button type="button" data-wq="5">5 kg</button>
+            <button type="button" data-wq="10">10 kg</button>
+            <button type="button" data-wq="25">25 kg</button>
+          </div>
+        </div>
+      `;
+      canAdd = true;
+    }
+
+    html += `<button class="add-btn" id="addBtn" ${canAdd ? '' : 'disabled'}>Add to cart</button>`;
+    configPanel.innerHTML = html;
+    wireConfigEvents(mode);
+  }
+
+  function qtyRowHtml(){
+    return `<div class="qty-row">
+      <span class="qty-label">Quantity</span>
+      <div class="qty-stepper">
+        <button type="button" data-step="-1">−</button>
+        <input type="text" id="qtyInput" value="${qty}" readonly>
+        <button type="button" data-step="1">+</button>
+      </div>
+    </div>`;
+  }
+
+  function wireConfigEvents(mode){
+    // variant option buttons
+    configPanel.querySelectorAll('.variant-opt').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        selectedVariants[btn.dataset.level] = btn.dataset.opt;
+        selectedCondition = null; // re-confirm condition if variant changes
+        renderConfig();
+      });
+    });
+
+    // condition buttons
+    configPanel.querySelectorAll('.cond-btn.working, .cond-btn.nonworking').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        selectedCondition = btn.dataset.cond;
+        renderConfig();
+      });
+    });
+
+    // qty stepper
+    const qtyInput = configPanel.querySelector('#qtyInput');
+    if(qtyInput){
+      configPanel.querySelectorAll('[data-step]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const delta = parseInt(btn.dataset.step, 10);
+          qty = Math.max(1, qty + delta);
+          qtyInput.value = qty;
+        });
+      });
+    }
+
+    // weight input
+    const weightInput = configPanel.querySelector('#weightInput');
+    if(weightInput){
+      weightInput.addEventListener('input', ()=>{
+        const v = parseFloat(weightInput.value);
+        weight = isNaN(v) || v <= 0 ? 0.5 : v;
+      });
+      configPanel.querySelectorAll('[data-wq]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          weight = parseFloat(btn.dataset.wq);
+          weightInput.value = weight;
+        });
+      });
+    }
+
+    const addBtn = configPanel.querySelector('#addBtn');
+    if(addBtn) addBtn.addEventListener('click', addToCart);
+  }
+
+  // ================= CART LOGIC =================
+  function addToCart(){
+    const group = GROUPS.find(g=>g.id===activeGroupId);
+    const mode = pricingModeOf(group, selectedItem);
+    let key, meta, unitPrice, quantityLabel, lineTotal, itemName;
+    itemName = selectedItem.name;
+
+    if(mode === 'variantCondition'){
+      const variantKey = variantKeyFor(selectedItem);
+      const p = selectedItem.prices[variantKey];
+      unitPrice = selectedCondition === 'working' ? p.working : p.nonWorking;
+      const variantLabel = selectedItem.variantLevels.map(l => selectedVariants[l.key]).join(' · ');
+      key = `${group.id}:${selectedItem.id}:${variantKey}:${selectedCondition}`;
+      meta = `${variantLabel} · ${selectedCondition === 'working' ? 'Working' : 'Non-Working'}`;
+      lineTotal = unitPrice * qty;
+      quantityLabel = `${qty} × ₹${unitPrice.toLocaleString('en-IN')}`;
+    } else if(mode === 'condition'){
+      unitPrice = selectedCondition === 'working' ? selectedItem.working : selectedItem.nonWorking;
+      key = `${group.id}:${selectedItem.id}:${selectedCondition}`;
+      meta = selectedCondition === 'working' ? 'Working' : 'Non-Working';
+      lineTotal = unitPrice * qty;
+      quantityLabel = `${qty} × ₹${unitPrice.toLocaleString('en-IN')}`;
+    } else if(mode === 'flat'){
+      unitPrice = selectedItem.price;
+      key = `${group.id}:${selectedItem.id}`;
+      meta = null;
+      lineTotal = unitPrice * qty;
+      quantityLabel = `${qty} × ₹${unitPrice.toLocaleString('en-IN')}`;
+    } else { // perKg
+      unitPrice = selectedItem.pricePerKg;
+      key = `${group.id}:${selectedItem.id}`;
+      meta = null;
+      lineTotal = Math.round(unitPrice * weight);
+      quantityLabel = `${weight} kg × ₹${unitPrice.toLocaleString('en-IN')}/kg`;
+    }
+
+    const existing = cart.find(c => c.key === key);
+    if(existing){
+      if(mode === 'perKg'){
+        existing.weight += weight;
+        existing.lineTotal = Math.round(unitPrice * existing.weight);
+        existing.quantityLabel = `${existing.weight} kg × ₹${unitPrice.toLocaleString('en-IN')}/kg`;
+      } else {
+        existing.qty += qty;
+        existing.lineTotal = unitPrice * existing.qty;
+        existing.quantityLabel = `${existing.qty} × ₹${unitPrice.toLocaleString('en-IN')}`;
+      }
+    } else {
+      cart.push({
+        key, groupLabel: group.label, itemName, meta,
+        qty: mode === 'perKg' ? null : qty,
+        weight: mode === 'perKg' ? weight : null,
+        unitPrice, quantityLabel, lineTotal
+      });
+    }
+
+    selectedItem = null;
+    selectedVariants = {};
+    selectedCondition = null;
+    qty = 1;
+    weight = 1;
+    renderItems();
+    renderConfig();
+    renderCart();
+  }
+
+  function removeFromCart(key){
+    cart = cart.filter(c => c.key !== key);
+    renderCart();
+  }
+
+  const cartBody = document.getElementById('cartBody');
+  const cartCount = document.getElementById('cartCount');
+  const cartTotalEl = document.getElementById('cartTotal');
+  const ctaBtn = document.getElementById('ctaBtn');
+
+  function renderCart(){
+    cartCount.textContent = `${cart.length} item${cart.length===1?'':'s'}`;
+
+    if(cart.length === 0){
+      cartBody.innerHTML = '<div class="cart-empty">Nothing added yet. Pick an item on the left to get started.</div>';
+    } else {
+      cartBody.innerHTML = `<div class="cart-list">${cart.map(c => `
+        <div class="cart-item">
+          <div class="cart-item-main">
+            <div class="cart-item-name">${c.itemName}</div>
+            <div class="cart-item-meta">${c.groupLabel}${c.meta ? ' · ' + c.meta : ''} · ${c.quantityLabel}</div>
+          </div>
+          <div class="cart-item-right">
+            <div class="cart-item-price">₹${c.lineTotal.toLocaleString('en-IN')}</div>
+            <button class="cart-item-remove" data-key="${c.key}">✕</button>
+          </div>
+        </div>
+      `).join('')}</div>`;
+      cartBody.querySelectorAll('.cart-item-remove').forEach(btn=>{
+        btn.addEventListener('click', ()=> removeFromCart(btn.dataset.key));
+      });
+    }
+
+    const total = cart.reduce((sum,c)=> sum + c.lineTotal, 0);
+    cartTotalEl.textContent = total.toLocaleString('en-IN');
+    ctaBtn.disabled = cart.length === 0;
+  }
+
+  // ================= LEAD FORM MODAL =================
+  const overlay = document.getElementById('modalOverlay');
+  const modalClose = document.getElementById('modalClose');
+  const modalCartRecap = document.getElementById('modalCartRecap');
+  const successPrice = document.getElementById('successPrice');
+  const leadForm = document.getElementById('leadForm');
+  const formState = document.getElementById('modalFormState');
+  const successState = document.getElementById('modalSuccessState');
+
+  ctaBtn.addEventListener('click', ()=>{
+    if(ctaBtn.disabled) return;
+    const total = cart.reduce((sum,c)=> sum + c.lineTotal, 0);
+    modalCartRecap.innerHTML = cart.map(c => `
+      <div class="modal-cart-recap-row"><span>${c.itemName}${c.meta ? ' ('+c.meta+')' : ''}</span><span>₹${c.lineTotal.toLocaleString('en-IN')}</span></div>
+    `).join('') + `<div class="modal-cart-recap-row total"><span>Total estimate</span><span>₹${total.toLocaleString('en-IN')}</span></div>`;
+    formState.style.display = 'block';
+    successState.style.display = 'none';
+    leadForm.reset();
+    overlay.classList.add('open');
+  });
+
+  function closeModal(){ overlay.classList.remove('open'); }
+  modalClose.addEventListener('click', closeModal);
+  overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeModal(); });
+
+  leadForm.addEventListener('submit', (e)=>{
+    e.preventDefault();
+    const phone = document.getElementById('fPhone');
+    const pin = document.getElementById('fPin');
+    if(!/^[0-9]{10}$/.test(phone.value)){
+      phone.parentElement.classList.add('shake');
+      setTimeout(()=>phone.parentElement.classList.remove('shake'),350);
+      phone.focus();
+      return;
+    }
+    if(!/^[0-9]{6}$/.test(pin.value)){
+      pin.parentElement.classList.add('shake');
+      setTimeout(()=>pin.parentElement.classList.remove('shake'),350);
+      pin.focus();
+      return;
+    }
+    const total = cart.reduce((sum,c)=> sum + c.lineTotal, 0);
+    successPrice.textContent = '₹' + total.toLocaleString('en-IN');
+    formState.style.display = 'none';
+    successState.style.display = 'block';
+  });
+
+  // ================= INSPECTION MODAL =================
+  const inspOverlay = document.getElementById('inspOverlay');
+  const inspClose = document.getElementById('inspClose');
+  const inspList = document.getElementById('inspList');
+  inspList.innerHTML = INSPECTION_POINTS.map((p,i) => `<li><span class="insp-num">${i+1}</span><span>${p}</span></li>`).join('');
+
+  document.getElementById('openInspection').addEventListener('click', ()=> inspOverlay.classList.add('open'));
+  inspClose.addEventListener('click', ()=> inspOverlay.classList.remove('open'));
+  inspOverlay.addEventListener('click', (e)=>{ if(e.target === inspOverlay) inspOverlay.classList.remove('open'); });
+
+  // ================= INIT =================
+  (async function init(){
+    await loadPricesFromSheet(); // overwrites placeholder prices in GROUPS if the sheet is configured
+    renderGroups();
+    renderItems();
+    renderConfig();
+    renderCart();
+  })();
+
+</script>
+</body>
+</html>
