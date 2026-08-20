@@ -221,6 +221,25 @@
   .cart-total-value{ font-family:'Space Grotesk',sans-serif; font-size:28px; font-weight:700; }
   .cart-total-value .curr{ font-size:0.55em; opacity:0.7; }
 
+  /* ---------- minimum guaranteed disclosure ---------- */
+  .min-guaranteed-row{ margin-top:10px; }
+  .mg-toggle{
+    width:100%; background:rgba(255,255,255,0.06); border:none; border-radius:10px;
+    padding:10px 12px; color:rgba(255,255,255,0.85); font-size:12.5px; font-weight:600;
+    display:flex; justify-content:space-between; align-items:center; cursor:pointer;
+    transition:background .15s;
+  }
+  .mg-toggle:hover{ background:rgba(255,255,255,0.1); }
+  .mg-toggle b{ color:var(--brass); font-weight:700; }
+  .mg-chev{ width:14px; height:14px; flex-shrink:0; transition:transform .2s; color:rgba(255,255,255,0.6); }
+  .mg-toggle.open .mg-chev{ transform:rotate(180deg); }
+  .mg-detail{ max-height:0; overflow:hidden; transition:max-height .25s ease; }
+  .mg-detail.open{ max-height:400px; margin-top:8px; }
+  .mg-row{ display:flex; justify-content:space-between; gap:10px; font-size:11.5px; color:rgba(255,255,255,0.65); padding:5px 12px; line-height:1.4; }
+  .mg-row span:first-child{ flex-shrink:0; }
+  .mg-row b{ color:rgba(255,255,255,0.92); font-weight:700; }
+  .mg-trust{ font-size:11.5px; line-height:1.55; color:rgba(255,255,255,0.55); padding:9px 12px 2px; border-top:1px dashed rgba(255,255,255,0.12); margin-top:4px; }
+
   .inspection-note{
     display:flex; gap:8px; align-items:flex-start; margin-top:14px;
     background:rgba(255,255,255,0.06); border-radius:10px; padding:11px 12px;
@@ -267,12 +286,13 @@
   .modal-cart-recap-row.total{ font-weight:700; color:var(--ink); border-top:1px solid var(--line); margin-top:6px; padding-top:8px; }
   .field{ margin-bottom:15px; }
   .field label{ display:block; font-size:12.5px; font-weight:600; margin-bottom:6px; color:var(--ink); }
-  .field input{
+  .field input, .field textarea{
     width:100%; padding:12px 14px; border-radius:10px;
     border:1.5px solid var(--line); font-size:14.5px; font-family:'Inter',sans-serif;
     background:var(--paper);
   }
-  .field input:focus{ outline:none; border-color:var(--copper); background:var(--white); }
+  .field textarea{ resize:vertical; font-size:14px; }
+  .field input:focus, .field textarea:focus{ outline:none; border-color:var(--copper); background:var(--white); }
   .submit-btn{
     width:100%; background:var(--forest); color:var(--white); border:none;
     border-radius:10px; padding:14px; font-size:15px; font-weight:700;
@@ -286,6 +306,23 @@
   }
   .success .check svg{width:26px;height:26px;color:white;}
   .success p{color:#5A6863; font-size:14px; line-height:1.5;}
+
+  /* GPS button */
+  .gps-btn{
+    display:flex; align-items:center; gap:8px; width:100%; padding:11px 14px;
+    border-radius:10px; border:1.5px dashed var(--line); background:var(--paper);
+    cursor:pointer; font-size:13px; font-weight:600; color:var(--forest);
+    transition:all .15s;
+  }
+  .gps-btn:hover{ border-color:var(--copper-light); }
+  .gps-btn.captured{ border-style:solid; border-color:var(--pcb-green); color:var(--pcb-green); background:rgba(76,154,106,0.08); }
+  .gps-btn svg{ flex-shrink:0; }
+
+  /* Minimum-guaranteed acknowledgment checkbox */
+  .mg-ack{ background:var(--paper); border-radius:10px; padding:12px 14px; margin-bottom:16px; }
+  .ack-label{ display:flex; gap:10px; align-items:flex-start; font-size:12px; line-height:1.5; color:#3E4D48; cursor:pointer; }
+  .ack-label input{ margin-top:2px; flex-shrink:0; width:16px; height:16px; accent-color:var(--copper); }
+  .ack-label b{ color:var(--ink); }
 
   /* ---------- inspection modal ---------- */
   .insp-modal .modal{ max-width:480px; }
@@ -360,6 +397,17 @@
       <div class="cart-total-value"><span class="curr">₹</span><span id="cartTotal">0</span></div>
     </div>
 
+    <div class="min-guaranteed-row" id="minGuaranteedRow" style="display:none;">
+      <button class="mg-toggle" id="mgToggle" type="button">
+        <span>Minimum guaranteed: <b id="mgValue">₹0</b></span>
+        <svg class="mg-chev" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <div class="mg-detail" id="mgDetail">
+        <div id="mgRows"></div>
+        <div class="mg-trust">We always aim to pay the best possible value for your scrap — this is simply your safety net if an item's condition turns out different from what's described, confirmed at our 10-point inspection.</div>
+      </div>
+    </div>
+
     <div class="inspection-note">
       <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4.5 8-11V5l-8-3-8 3v6c0 6.5 8 11 8 11z" stroke="currentColor" stroke-width="1.6"/><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span>Exact payout is confirmed after our <a id="openInspection">10-point on-site inspection</a> — this total is an estimate.</span>
@@ -379,9 +427,34 @@
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
     <button class="modal-close" id="modalClose">✕</button>
-    <div id="modalFormState">
+
+    <!-- STEP 1: PINCODE GATE -->
+    <div id="modalPincodeState">
+      <h3>Check pickup availability</h3>
+      <p class="sub">Enter your pincode to see if we currently service your area.</p>
+      <div class="field">
+        <label for="gatePin">Pincode</label>
+        <input id="gatePin" type="text" placeholder="e.g. 302001" required pattern="[0-9]{6}" maxlength="6">
+      </div>
+      <button type="button" class="submit-btn" id="checkPinBtn">Check availability</button>
+    </div>
+
+    <!-- STEP 1b: UNAVAILABLE -->
+    <div id="modalUnavailableState" style="display:none;">
+      <div class="success">
+        <div class="check" style="background:var(--danger);">
+          <svg viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="white" stroke-width="2.4" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Not serviceable yet</h3>
+        <p>We don't currently pick up in <b id="badPin"></b>. We're expanding fast — check back soon, or call us at 1800-123-4567.</p>
+      </div>
+      <button type="button" class="submit-btn" id="tryAnotherPin" style="margin-top:14px; background:var(--paper-dim); color:var(--ink);">Try another pincode</button>
+    </div>
+
+    <!-- STEP 2: FULL FORM -->
+    <div id="modalFormState" style="display:none;">
       <h3>Almost there.</h3>
-      <p class="sub">Enter your details and we'll confirm a pickup slot for your cart.</p>
+      <p class="sub">We service <b id="goodPin" style="color:var(--pcb-green);"></b> — enter your details and we'll confirm a pickup slot.</p>
       <div class="modal-cart-recap" id="modalCartRecap"></div>
       <form id="leadForm">
         <div class="field">
@@ -393,12 +466,27 @@
           <input id="fPhone" type="tel" placeholder="10-digit mobile number" required pattern="[0-9]{10}" maxlength="10">
         </div>
         <div class="field">
-          <label for="fPin">Pincode</label>
-          <input id="fPin" type="text" placeholder="e.g. 411001" required pattern="[0-9]{6}" maxlength="6">
+          <label for="fAddress">Pickup address</label>
+          <textarea id="fAddress" rows="3" placeholder="House/flat no., street, landmark" required></textarea>
+        </div>
+        <div class="field">
+          <label>GPS location <span style="font-weight:400; color:#8A9490;">(optional — helps our agent find you faster)</span></label>
+          <button type="button" class="gps-btn" id="gpsBtn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2v3M12 19v3M2 12h3M19 12h3M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+            <span id="gpsBtnText">Use current location</span>
+          </button>
+        </div>
+        <div class="mg-ack" id="mgAck" style="display:none;">
+          <label class="ack-label">
+            <input type="checkbox" id="ackCheckbox">
+            <span>I understand my final payout may be between <b id="ackMin">₹0</b> and <b id="ackMax">₹0</b>, confirmed after on-site inspection. ReCircuit always aims for the best possible value for my scrap.</span>
+          </label>
         </div>
         <button type="submit" class="submit-btn">Confirm &amp; request pickup</button>
       </form>
     </div>
+
+    <!-- STEP 3: SUCCESS -->
     <div id="modalSuccessState" style="display:none;">
       <div class="success">
         <div class="check"><svg viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="white" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
@@ -557,7 +645,7 @@
   //    no code changes. Visitors only ever see the calculator UI, never the sheet or this fetch.
   // 4. If the fetch fails (URL not set yet, sheet unpublished, offline), the calculator silently falls
   //    back to the placeholder prices already hard-coded in GROUPS above, so it never breaks for visitors.
-  const PRICE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRSeYHLzie8T_c3C7jJ_-qA_3jyIIKTxKefdnDmHNI0aoEmKljBuCg7H0htRQG0CCodtyNIJcZWQN8F/pub?gid=421974406&single=true&output=csv";
+  const PRICE_SHEET_CSV_URL = "PASTE_YOUR_PUBLISHED_GOOGLE_SHEET_CSV_LINK_HERE";
 
   function parseCSV(text){
     const rows = [];
@@ -642,6 +730,38 @@
     }
   }
 
+  // ================= SERVICEABLE PINCODES (backend, not visible to site visitors) =================
+  // Placeholder list for structure only — replace with your real serviceable pincodes,
+  // or (recommended) publish them via the same Google Sheet mechanism as prices above:
+  // a second tab with one column named "pincode", one row per serviceable pincode,
+  // published the same way (File > Share > Publish to web > CSV), URL pasted below.
+  // If the sheet fetch fails or the URL isn't set, the calculator falls back to this
+  // placeholder list, so the pincode gate never breaks for visitors.
+  let SERVICEABLE_PINCODES = ['302001','302002','302003','302004','302005','302012','302015','302017','110001','400001'];
+
+  const PINCODE_SHEET_CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRSeYHLzie8T_c3C7jJ_-qA_3jyIIKTxKefdnDmHNI0aoEmKljBuCg7H0htRQG0CCodtyNIJcZWQN8F/pub?gid=131224601&single=true&output=csv";
+
+  async function loadPincodesFromSheet(){
+    if(!PINCODE_SHEET_CSV_URL || PINCODE_SHEET_CSV_URL.indexOf('PASTE_YOUR') === 0){
+      console.warn('[ReCircuit] Pincode sheet URL not configured yet — using built-in placeholder pincodes.');
+      return;
+    }
+    try{
+      const res = await fetch(PINCODE_SHEET_CSV_URL, { cache:'no-store' });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      const text = await res.text();
+      const rows = parseCSV(text);
+      const fromSheet = rows.map(r => (r.pincode || '').trim()).filter(p => /^[0-9]{6}$/.test(p));
+      if(fromSheet.length) SERVICEABLE_PINCODES = fromSheet;
+    }catch(err){
+      console.warn('[ReCircuit] Could not load live pincode sheet, using built-in placeholder pincodes.', err);
+    }
+  }
+
+  function isPincodeServiceable(pin){
+    return SERVICEABLE_PINCODES.includes(pin);
+  }
+
   const INSPECTION_POINTS = [
     'Overall physical condition and visible damage',
     'Power-on / functional test where applicable',
@@ -667,6 +787,8 @@
   let weight = 1;
 
   let cart = [];
+  let checkedPincode = '';
+  let capturedGPS = null;
 
   // ================= RENDER: GROUPS =================
   const groupRow = document.getElementById('groupRow');
@@ -885,35 +1007,47 @@
   function addToCart(){
     const group = GROUPS.find(g=>g.id===activeGroupId);
     const mode = pricingModeOf(group, selectedItem);
-    let key, meta, unitPrice, quantityLabel, lineTotal, itemName;
+    let key, meta, unitPrice, floorUnitPrice, hasFloorGap, quantityLabel, lineTotal, floorLineTotal, itemName;
     itemName = selectedItem.name;
 
     if(mode === 'variantCondition'){
       const variantKey = variantKeyFor(selectedItem);
       const p = selectedItem.prices[variantKey];
       unitPrice = selectedCondition === 'working' ? p.working : p.nonWorking;
+      floorUnitPrice = p.nonWorking; // worst-case is always the Non-Working price for this variant
+      hasFloorGap = true;
       const variantLabel = selectedItem.variantLevels.map(l => selectedVariants[l.key]).join(' · ');
       key = `${group.id}:${selectedItem.id}:${variantKey}:${selectedCondition}`;
       meta = `${variantLabel} · ${selectedCondition === 'working' ? 'Working' : 'Non-Working'}`;
       lineTotal = unitPrice * qty;
+      floorLineTotal = floorUnitPrice * qty;
       quantityLabel = `${qty} × ₹${unitPrice.toLocaleString('en-IN')}`;
     } else if(mode === 'condition'){
       unitPrice = selectedCondition === 'working' ? selectedItem.working : selectedItem.nonWorking;
+      floorUnitPrice = selectedItem.nonWorking;
+      hasFloorGap = true;
       key = `${group.id}:${selectedItem.id}:${selectedCondition}`;
       meta = selectedCondition === 'working' ? 'Working' : 'Non-Working';
       lineTotal = unitPrice * qty;
+      floorLineTotal = floorUnitPrice * qty;
       quantityLabel = `${qty} × ₹${unitPrice.toLocaleString('en-IN')}`;
     } else if(mode === 'flat'){
       unitPrice = selectedItem.price;
+      floorUnitPrice = unitPrice; // no condition variance — floor equals ceiling
+      hasFloorGap = false;
       key = `${group.id}:${selectedItem.id}`;
       meta = null;
       lineTotal = unitPrice * qty;
+      floorLineTotal = lineTotal;
       quantityLabel = `${qty} × ₹${unitPrice.toLocaleString('en-IN')}`;
     } else { // perKg
       unitPrice = selectedItem.pricePerKg;
+      floorUnitPrice = unitPrice; // no condition variance — floor equals ceiling
+      hasFloorGap = false;
       key = `${group.id}:${selectedItem.id}`;
       meta = null;
       lineTotal = Math.round(unitPrice * weight);
+      floorLineTotal = lineTotal;
       quantityLabel = `${weight} kg × ₹${unitPrice.toLocaleString('en-IN')}/kg`;
     }
 
@@ -922,10 +1056,12 @@
       if(mode === 'perKg'){
         existing.weight += weight;
         existing.lineTotal = Math.round(unitPrice * existing.weight);
+        existing.floorLineTotal = existing.lineTotal;
         existing.quantityLabel = `${existing.weight} kg × ₹${unitPrice.toLocaleString('en-IN')}/kg`;
       } else {
         existing.qty += qty;
         existing.lineTotal = unitPrice * existing.qty;
+        existing.floorLineTotal = floorUnitPrice * existing.qty;
         existing.quantityLabel = `${existing.qty} × ₹${unitPrice.toLocaleString('en-IN')}`;
       }
     } else {
@@ -933,7 +1069,8 @@
         key, groupLabel: group.label, itemName, meta,
         qty: mode === 'perKg' ? null : qty,
         weight: mode === 'perKg' ? weight : null,
-        unitPrice, quantityLabel, lineTotal
+        unitPrice, floorUnitPrice, hasFloorGap,
+        quantityLabel, lineTotal, floorLineTotal
       });
     }
 
@@ -952,10 +1089,21 @@
     renderCart();
   }
 
+  function cartTotals(){
+    const total = cart.reduce((s,c)=> s + c.lineTotal, 0);
+    const minGuaranteed = cart.reduce((s,c)=> s + (c.hasFloorGap ? c.floorLineTotal : c.lineTotal), 0);
+    return { total, minGuaranteed };
+  }
+
   const cartBody = document.getElementById('cartBody');
   const cartCount = document.getElementById('cartCount');
   const cartTotalEl = document.getElementById('cartTotal');
   const ctaBtn = document.getElementById('ctaBtn');
+  const minGuaranteedRow = document.getElementById('minGuaranteedRow');
+  const mgToggle = document.getElementById('mgToggle');
+  const mgDetail = document.getElementById('mgDetail');
+  const mgValue = document.getElementById('mgValue');
+  const mgRows = document.getElementById('mgRows');
 
   function renderCart(){
     cartCount.textContent = `${cart.length} item${cart.length===1?'':'s'}`;
@@ -980,10 +1128,27 @@
       });
     }
 
-    const total = cart.reduce((sum,c)=> sum + c.lineTotal, 0);
+    const { total, minGuaranteed } = cartTotals();
     cartTotalEl.textContent = total.toLocaleString('en-IN');
     ctaBtn.disabled = cart.length === 0;
+
+    if(minGuaranteed < total){
+      minGuaranteedRow.style.display = 'block';
+      mgValue.textContent = '₹' + minGuaranteed.toLocaleString('en-IN');
+      mgRows.innerHTML = cart.filter(c => c.hasFloorGap && c.floorLineTotal < c.lineTotal).map(c => `
+        <div class="mg-row"><span>${c.itemName}${c.meta ? ' (' + c.meta + ')' : ''}</span><span><b>₹${c.floorLineTotal.toLocaleString('en-IN')}</b> if worst condition <span style="opacity:.6;">(vs ₹${c.lineTotal.toLocaleString('en-IN')})</span></span></div>
+      `).join('');
+    } else {
+      minGuaranteedRow.style.display = 'none';
+      mgToggle.classList.remove('open');
+      mgDetail.classList.remove('open');
+    }
   }
+
+  mgToggle.addEventListener('click', ()=>{
+    mgToggle.classList.toggle('open');
+    mgDetail.classList.toggle('open');
+  });
 
   // ================= LEAD FORM MODAL =================
   const overlay = document.getElementById('modalOverlay');
@@ -991,19 +1156,100 @@
   const modalCartRecap = document.getElementById('modalCartRecap');
   const successPrice = document.getElementById('successPrice');
   const leadForm = document.getElementById('leadForm');
+  const pincodeState = document.getElementById('modalPincodeState');
+  const unavailableState = document.getElementById('modalUnavailableState');
   const formState = document.getElementById('modalFormState');
   const successState = document.getElementById('modalSuccessState');
+  const gatePin = document.getElementById('gatePin');
+  const checkPinBtn = document.getElementById('checkPinBtn');
+  const tryAnotherPin = document.getElementById('tryAnotherPin');
+  const badPin = document.getElementById('badPin');
+  const goodPin = document.getElementById('goodPin');
+  const mgAck = document.getElementById('mgAck');
+  const ackCheckbox = document.getElementById('ackCheckbox');
+  const ackMin = document.getElementById('ackMin');
+  const ackMax = document.getElementById('ackMax');
+  const gpsBtn = document.getElementById('gpsBtn');
+  const gpsBtnText = document.getElementById('gpsBtnText');
+
+  function showModalStep(step){
+    pincodeState.style.display = step === 'pincode' ? 'block' : 'none';
+    unavailableState.style.display = step === 'unavailable' ? 'block' : 'none';
+    formState.style.display = step === 'form' ? 'block' : 'none';
+    successState.style.display = step === 'success' ? 'block' : 'none';
+  }
 
   ctaBtn.addEventListener('click', ()=>{
     if(ctaBtn.disabled) return;
-    const total = cart.reduce((sum,c)=> sum + c.lineTotal, 0);
-    modalCartRecap.innerHTML = cart.map(c => `
-      <div class="modal-cart-recap-row"><span>${c.itemName}${c.meta ? ' ('+c.meta+')' : ''}</span><span>₹${c.lineTotal.toLocaleString('en-IN')}</span></div>
-    `).join('') + `<div class="modal-cart-recap-row total"><span>Total estimate</span><span>₹${total.toLocaleString('en-IN')}</span></div>`;
-    formState.style.display = 'block';
-    successState.style.display = 'none';
-    leadForm.reset();
+    checkedPincode = '';
+    capturedGPS = null;
+    gatePin.value = '';
+    gpsBtn.classList.remove('captured');
+    gpsBtnText.textContent = 'Use current location';
+    showModalStep('pincode');
     overlay.classList.add('open');
+  });
+
+  checkPinBtn.addEventListener('click', ()=>{
+    const pin = gatePin.value.trim();
+    if(!/^[0-9]{6}$/.test(pin)){
+      gatePin.parentElement.classList.add('shake');
+      setTimeout(()=> gatePin.parentElement.classList.remove('shake'), 350);
+      gatePin.focus();
+      return;
+    }
+    if(isPincodeServiceable(pin)){
+      checkedPincode = pin;
+      goodPin.textContent = pin;
+
+      const { total, minGuaranteed } = cartTotals();
+      modalCartRecap.innerHTML = cart.map(c => `
+        <div class="modal-cart-recap-row"><span>${c.itemName}${c.meta ? ' ('+c.meta+')' : ''}</span><span>₹${c.lineTotal.toLocaleString('en-IN')}</span></div>
+      `).join('') + `<div class="modal-cart-recap-row total"><span>Total estimate</span><span>₹${total.toLocaleString('en-IN')}</span></div>`;
+
+      if(minGuaranteed < total){
+        mgAck.style.display = 'block';
+        ackMin.textContent = '₹' + minGuaranteed.toLocaleString('en-IN');
+        ackMax.textContent = '₹' + total.toLocaleString('en-IN');
+        ackCheckbox.required = true;
+        ackCheckbox.checked = false;
+      } else {
+        mgAck.style.display = 'none';
+        ackCheckbox.required = false;
+        ackCheckbox.checked = false;
+      }
+
+      leadForm.reset();
+      showModalStep('form');
+    } else {
+      badPin.textContent = pin;
+      showModalStep('unavailable');
+    }
+  });
+
+  tryAnotherPin.addEventListener('click', ()=>{
+    gatePin.value = '';
+    showModalStep('pincode');
+  });
+
+  gpsBtn.addEventListener('click', ()=>{
+    if(!navigator.geolocation){
+      alert('Location access isn\'t supported on this browser — no problem, just fill in the address below.');
+      return;
+    }
+    gpsBtnText.textContent = 'Getting location…';
+    navigator.geolocation.getCurrentPosition(
+      (pos)=>{
+        capturedGPS = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        gpsBtn.classList.add('captured');
+        gpsBtnText.textContent = 'Location captured ✓';
+      },
+      ()=>{
+        capturedGPS = null;
+        gpsBtnText.textContent = 'Use current location';
+        alert('Could not access your location — no worries, just fill in the pickup address below.');
+      }
+    );
   });
 
   function closeModal(){ overlay.classList.remove('open'); }
@@ -1012,24 +1258,24 @@
 
   leadForm.addEventListener('submit', (e)=>{
     e.preventDefault();
-    const phone = document.getElementById('fPhone');
-    const pin = document.getElementById('fPin');
-    if(!/^[0-9]{10}$/.test(phone.value)){
-      phone.parentElement.classList.add('shake');
-      setTimeout(()=>phone.parentElement.classList.remove('shake'),350);
-      phone.focus();
+    if(!leadForm.checkValidity()){
+      leadForm.reportValidity();
       return;
     }
-    if(!/^[0-9]{6}$/.test(pin.value)){
-      pin.parentElement.classList.add('shake');
-      setTimeout(()=>pin.parentElement.classList.remove('shake'),350);
-      pin.focus();
-      return;
-    }
-    const total = cart.reduce((sum,c)=> sum + c.lineTotal, 0);
+    const { total } = cartTotals();
+
+    // Lead payload — wire this to your backend/CRM:
+    // {
+    //   name: document.getElementById('fName').value,
+    //   phone: document.getElementById('fPhone').value,
+    //   pincode: checkedPincode,
+    //   address: document.getElementById('fAddress').value,
+    //   gps: capturedGPS, // { lat, lng } or null if not captured
+    //   cart, total
+    // }
+
     successPrice.textContent = '₹' + total.toLocaleString('en-IN');
-    formState.style.display = 'none';
-    successState.style.display = 'block';
+    showModalStep('success');
   });
 
   // ================= INSPECTION MODAL =================
@@ -1044,7 +1290,7 @@
 
   // ================= INIT =================
   (async function init(){
-    await loadPricesFromSheet(); // overwrites placeholder prices in GROUPS if the sheet is configured
+    await Promise.all([ loadPricesFromSheet(), loadPincodesFromSheet() ]); // overwrites placeholders if sheets are configured
     renderGroups();
     renderItems();
     renderConfig();
